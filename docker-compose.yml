@@ -1,0 +1,54 @@
+version: "3.6"
+
+services:
+  dev:
+    image: maven:3.6.2-jdk-8
+    hostname: dev
+    command: sleep inf
+    volumes:
+      - ./thumbnailer:/th
+      - m2repo:/root/.m2/repository
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  gitlab:
+    # get gitlab root password: `docker-compose exec gitlab cat /etc/gitlab/initial_root_password`
+    image: gitlab/gitlab-ce:14.9.3-ce.0
+    hostname: gitlab
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - gitlab_config:/etc/gitlab
+      - gitlab_logs:/var/log/gitlab
+      - gitlab_data:/var/opt/gitlab
+
+  jenkins:
+    # get jenkins admin password: `docker-compose exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword`
+    build:
+      context: .
+      # this could differ on your host, check it with: `getent group docker | cut -d ":" -f 3`
+      args:
+        HOST_DOCKER_GID: 999
+    hostname: jenkins
+    ports:
+      - 8080:8080
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  artifactory:
+    # artifactory admin passowrd: 'password'
+    image: releases-docker.jfrog.io/jfrog/artifactory-oss:6.23.13
+    hostname: artifactory
+    ports:
+      - 8081:8081
+    volumes:
+      - artifactory_data:/var/opt/jfrog/artifactory
+
+volumes:
+  m2repo:
+  gitlab_config:
+  gitlab_logs:
+  gitlab_data:
+  jenkins_home:
+  artifactory_data:
