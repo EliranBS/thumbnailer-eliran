@@ -15,13 +15,14 @@ It is intended for local/intranet experimentation where teams need to simulate a
 - `Dockerfile` – custom Jenkins image with Docker CLI + docker-compose installed (Docker-outside-of-Docker using host socket).
 - `settings.xml` – Maven settings pointing to Artifactory repositories and credentials.
 - `.env.example` – environment variable template for configurable versions/ports.
+- `Makefile` – convenience commands for init/validate/up/down/logs workflows.
 
 ## Quick Start
 
-1. Copy environment template:
+1. Initialize environment file:
 
 ```bash
-cp .env.example .env
+make init
 ```
 
 2. (Optional) Edit `.env` values for custom ports or image tags.
@@ -43,6 +44,36 @@ docker compose up -d --build
   docker compose exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
   ```
 - Artifactory default admin password: `password`
+
+
+## Makefile Commands
+
+Use the Makefile for repeatable local operations:
+
+- Validate setup and compose syntax:
+  ```bash
+  make validate
+  ```
+- Print resolved compose config:
+  ```bash
+  make config
+  ```
+- Start services:
+  ```bash
+  make up
+  ```
+- Stop services:
+  ```bash
+  make down
+  ```
+- Show status:
+  ```bash
+  make ps
+  ```
+- Tail logs:
+  ```bash
+  make logs
+  ```
 
 ## Recommended CI Flow
 
