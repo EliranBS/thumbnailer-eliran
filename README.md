@@ -1,38 +1,55 @@
-# Thumbnailer DevOps Sandbox
+# Generic DevOps Sandbox (Ubuntu-based dev container)
 
-This repository contains a lightweight local **DevOps sandbox** for developing and validating the `thumbnailer` Maven project with a full internal toolchain:
+This repository provides a lightweight local **DevOps sandbox** for **any project**, with an Ubuntu-based development container and a full internal CI/CD toolchain:
 
+- **Ubuntu dev container** for generic project development
 - **GitLab CE** for source control and CI repository hosting
 - **Jenkins** for pipeline execution
-- **JFrog Artifactory OSS** for Maven artifacts (release/snapshot)
-- **Maven-based dev container** for local build and test work
+- **JFrog Artifactory OSS** for artifact storage
 
-It is intended for local/intranet experimentation where teams need to simulate a production-like CI/CD flow without external SaaS dependencies.
+It is designed for local/intranet experimentation where teams need production-like CI/CD behavior without external SaaS dependencies.
 
 ## Repository Structure
 
 - `docker-compose.yml` – orchestrates all local infrastructure services.
 - `Dockerfile` – custom Jenkins image with Docker CLI + docker-compose installed (Docker-outside-of-Docker using host socket).
-- `settings.xml` – Maven settings pointing to Artifactory repositories and credentials.
-- `.env.example` – environment variable template for configurable versions/ports.
+- `settings.xml` – Maven-oriented example settings for Artifactory credentials/repositories.
+- `.env.example` – environment variable template for container images, paths, and ports.
+- `Makefile` – convenience commands for init/validate/up/down/logs workflows.
 
 ## Quick Start
 
-1. Copy environment template:
+1. Initialize environment file:
 
 ```bash
-cp .env.example .env
+make init
 ```
 
-2. (Optional) Edit `.env` values for custom ports or image tags.
+2. Optionally edit `.env` values, especially:
+
+- `PROJECT_PATH` – host path of the project you want to mount
+- `DEV_WORKDIR` – mount point inside the dev container
+- `DEV_BASE_IMAGE` – default is `ubuntu:22.04`
 
 3. Start all core services:
 
 ```bash
-docker compose up -d --build
+make up
 ```
 
-4. Initial credentials:
+4. Open shell in the Ubuntu dev container:
+
+```bash
+docker compose exec dev bash
+```
+
+## Default Service Endpoints
+
+- GitLab: `http://localhost:${GITLAB_HTTP_PORT}`
+- Jenkins: `http://localhost:${JENKINS_PORT}`
+- Artifactory: `http://localhost:${ARTIFACTORY_PORT}`
+
+## Initial Credentials
 
 - GitLab root password:
   ```bash
@@ -44,34 +61,42 @@ docker compose up -d --build
   ```
 - Artifactory default admin password: `password`
 
-## Recommended CI Flow
+## Makefile Commands
 
-1. Developer works in `dev` container (Maven + mounted project).
-2. Code is pushed to GitLab.
-3. Jenkins pipeline is triggered from GitLab webhook or SCM polling.
-4. Jenkins builds/tests with Maven and deploys to Artifactory using `settings.xml` credentials.
-5. Snapshot/release repositories separate unstable and stable outputs.
+- Validate setup and compose syntax:
+  ```bash
+  make validate
+  ```
+- Print resolved compose config:
+  ```bash
+  make config
+  ```
+- Start services:
+  ```bash
+  make up
+  ```
+- Stop services:
+  ```bash
+  make down
+  ```
+- Restart services:
+  ```bash
+  make restart
+  ```
+- Show status:
+  ```bash
+  make ps
+  ```
+- Tail logs:
+  ```bash
+  make logs
+  ```
 
 ## Operational Notes
 
 - Jenkins and dev container mount `/var/run/docker.sock`; they can control host Docker daemon.
 - `HOST_DOCKER_GID` must match host docker group id for Jenkins container socket access.
-- Data is persisted via named volumes (`gitlab_*`, `jenkins_home`, `artifactory_data`, `m2repo`).
-
-## Useful Commands
-
-- Check container health/state:
-  ```bash
-  docker compose ps
-  ```
-- Follow all logs:
-  ```bash
-  docker compose logs -f
-  ```
-- Stop services:
-  ```bash
-  docker compose down
-  ```
+- Data is persisted via named volumes (`gitlab_*`, `jenkins_home`, `artifactory_data`).
 
 ## Safety / Limitations
 

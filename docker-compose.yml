@@ -2,13 +2,15 @@ version: "3.6"
 
 services:
   dev:
-    image: ${MAVEN_IMAGE:-maven:3.6.2-jdk-8}
+    image: ${DEV_BASE_IMAGE:-ubuntu:22.04}
     hostname: dev
-    command: sleep inf
+    command: ["bash", "-lc", "while true; do sleep 3600; done"]
+    tty: true
+    stdin_open: true
     restart: unless-stopped
+    working_dir: ${DEV_WORKDIR:-/workspace/project}
     volumes:
-      - ./thumbnailer:/th
-      - m2repo:/root/.m2/repository
+      - ${PROJECT_PATH:-.}:${DEV_WORKDIR:-/workspace/project}
       - /var/run/docker.sock:/var/run/docker.sock
 
   gitlab:
@@ -64,7 +66,6 @@ services:
       - artifactory_data:/var/opt/jfrog/artifactory
 
 volumes:
-  m2repo:
   gitlab_config:
   gitlab_logs:
   gitlab_data:
