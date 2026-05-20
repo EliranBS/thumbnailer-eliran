@@ -2,46 +2,64 @@ version: "3.6"
 
 services:
   dev:
-    image: maven:3.6.2-jdk-8
+    image: ${MAVEN_IMAGE:-maven:3.6.2-jdk-8}
     hostname: dev
     command: sleep inf
+    restart: unless-stopped
     volumes:
       - ./thumbnailer:/th
       - m2repo:/root/.m2/repository
       - /var/run/docker.sock:/var/run/docker.sock
 
   gitlab:
-    # get gitlab root password: `docker-compose exec gitlab cat /etc/gitlab/initial_root_password`
-    image: gitlab/gitlab-ce:14.9.3-ce.0
+    # get gitlab root password: `docker compose exec gitlab cat /etc/gitlab/initial_root_password`
+    image: ${GITLAB_IMAGE:-gitlab/gitlab-ce:14.9.3-ce.0}
     hostname: gitlab
+    restart: unless-stopped
     ports:
-      - 80:80
-      - 443:443
+      - ${GITLAB_HTTP_PORT:-80}:80
+      - ${GITLAB_HTTPS_PORT:-443}:443
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/-/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 180s
     volumes:
       - gitlab_config:/etc/gitlab
       - gitlab_logs:/var/log/gitlab
       - gitlab_data:/var/opt/gitlab
 
   jenkins:
-    # get jenkins admin password: `docker-compose exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword`
+    # get jenkins admin password: `docker compose exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword`
     build:
       context: .
-      # this could differ on your host, check it with: `getent group docker | cut -d ":" -f 3`
       args:
-        HOST_DOCKER_GID: 999
+        HOST_DOCKER_GID: ${HOST_DOCKER_GID:-999}
     hostname: jenkins
+    restart: unless-stopped
     ports:
-      - 8080:8080
+      - ${JENKINS_PORT:-8080}:8080
+    depends_on:
+      gitlab:
+        condition: service_healthy
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
 
   artifactory:
-    # artifactory admin passowrd: 'password'
-    image: releases-docker.jfrog.io/jfrog/artifactory-oss:6.23.13
+    # artifactory admin password: 'password'
+    image: ${ARTIFACTORY_IMAGE:-releases-docker.jfrog.io/jfrog/artifactory-oss:6.23.13}
     hostname: artifactory
+    restart: unless-stopped
     ports:
-      - 8081:8081
+      - ${ARTIFACTORY_PORT:-8081}:8081
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/artifactory"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
     volumes:
       - artifactory_data:/var/opt/jfrog/artifactory
 
